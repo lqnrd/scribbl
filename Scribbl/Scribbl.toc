@@ -1,0 +1,16 @@
+## Interface: 70300
+## Author: lqnrd
+## Title: Scribbl
+## Version: 0.1
+## Notes: Scribbl
+## SavedVariablesPerCharacter: ScribblOptions
+## OptionalDeps: UTF8
+
+Libs\LibStub.lua
+Libs\iTransferProtocol-1.0.lua
+
+#For UTF-8 support
+Libs\UTF8\utf8.lua
+
+words.lua
+Scribbl.lua
