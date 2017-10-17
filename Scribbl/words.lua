@@ -6,7 +6,7 @@ local words = {"demon hunter", "death knight", "druid", "hunter", "mage", "monk"
 do
   --prepare words
   for i = 1, #words do
-    words[i] = words[i]:gsub("[^A-Za-z]", ""):upper()
+    words[i] = words[i]:upper():gsub("\"", "")
   end
 end
 

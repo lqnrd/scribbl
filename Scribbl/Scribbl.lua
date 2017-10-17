@@ -638,7 +638,7 @@ local function chooseOption(optionIndex)
     chooseButtons[i]:Hide()
   end
   currentGame.word = chooseOptions[optionIndex]
-  currentGame.wordX = currentGame.word:gsub(".","_")
+  currentGame.wordX = string.rep("_", string.utf8len(currentGame.word))
   mainDrawFrame.text:SetText(currentGame.word)
   sendChooseOption(currentGame.word, currentGame.wordX)
 end
@@ -909,17 +909,19 @@ function headerFrame:PLAYER_ENTERING_WORLD()
           end
         elseif getCurrentHost() == myCharnameRealm then
           if floor(self.guessingTime * (MAX_HINTS+1) / MAX_GUESSING_TIME) > currentGame.hints then
+            --construct next hint
             currentGame.hints = currentGame.hints + 1
             local wps = {};
-            for i = 1, currentGame.wordX:len() do
-              if currentGame.wordX:sub(i, i) == "_" then
+            for i = 1, string.utf8len(currentGame.wordX) do
+              if string.utf8sub(currentGame.wordX, i, i) == "_" then
                 table.insert(wps, i)
               end
             end
-            local c = floor(currentGame.hints / (MAX_HINTS+1) * currentGame.wordX:len()) - (currentGame.wordX:len() - #wps)
+            --"how many revealed chars do we want?" - "how many do we already have?"
+            local c = floor(currentGame.hints / (MAX_HINTS+1) * string.utf8len(currentGame.wordX)) - (string.utf8len(currentGame.wordX) - #wps)
             for i = 1, c do
               local j = random(#wps)
-              currentGame.wordX = currentGame.wordX:sub(1, wps[j]-1)..currentGame.word:sub(wps[j], wps[j])..currentGame.wordX:sub(wps[j]+1)
+              currentGame.wordX = string.utf8sub(currentGame.wordX, 1, wps[j]-1)..string.utf8sub(currentGame.word, wps[j], wps[j])..string.utf8sub(currentGame.wordX, wps[j]+1)
               table.remove(wps, j)
             end
             sendWordHint(currentGame.wordX)
