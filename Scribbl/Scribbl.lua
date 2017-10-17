@@ -8,7 +8,15 @@ local BLUE_PRINT_COLOR = "|cffaaaaff"
 local MAX_GUESSING_TIME = 120
 local MAX_HINTS = 3
 
-local words = Scribbl_words
+local allWords = Scribbl_words
+local defaultWordsKey = "deDE"
+--prepare words
+for _, v in pairs(allWords) do
+  for i = 1, #v do
+    v[i] = v[i]:upper():gsub("\"", "")
+  end
+end
+local words
 
 local iTP = LibStub:GetLibrary("iTransferProtocol-1.0")
 if not iTP then return end
@@ -73,6 +81,7 @@ local DefaultO, O = {
   ["frameOffsetX"] = 173;
   ["frameOffsetY"] = 141;
   ["COMchannel"] = "GUILD";
+  ["wordsKey"] = GetLocale();
 };
 
 local myRealm = GetRealmName("player"):gsub("%s","")
@@ -677,6 +686,15 @@ function headerFrame:PLAYER_ENTERING_WORLD()
   O.frameOffsetX = O.frameOffsetX or DefaultO.frameOffsetX
   O.frameOffsetY = O.frameOffsetY or DefaultO.frameOffsetY
   O.COMchannel = O.COMchannel or DefaultO.COMchannel
+  O.wordsKey = O.wordsKey or DefaultO.wordsKey
+  
+  ---------------------
+  --load words
+  ---------------------
+  words = allWords[O.wordsKey]
+  if not words then
+    words = allWords[defaultWordsKey]
+  end
   
   ---------------------
   --header text
@@ -1072,8 +1090,8 @@ end
 
 resetGame = function()
   removeAllPlayerFrames()
-  currentGame.id = nil
   sendLeaveGame()
+  currentGame.id = nil
   currentGame.ps = {};
   jointextbox:SetText("")
   startGameButton:Hide()

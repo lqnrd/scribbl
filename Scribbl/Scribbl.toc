@@ -12,5 +12,5 @@ Libs\iTransferProtocol-1.0.lua
 #For UTF-8 support
 Libs\UTF8\utf8.lua
 
-words.lua
+words.deDE.lua
 Scribbl.lua
