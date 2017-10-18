@@ -82,6 +82,8 @@ local DefaultO, O = {
   ["frameOffsetY"] = 141;
   ["COMchannel"] = "GUILD";
   ["wordsKey"] = GetLocale();
+  ["headerFrameShown"] = 1;
+  ["drawFrameShown"] = 1;
 };
 
 local myRealm = GetRealmName("player"):gsub("%s","")
@@ -655,15 +657,21 @@ end
 local function toggleHeaderFrame(b)
   if b then
     headerFrame:Show()
+    O.headerFrameShown = 1
   else
     headerFrame:Hide()
+    O.headerFrameShown = 0
   end
 end
 local function toggleDrawFrame(b)
   if b then
     mainDrawFrame:Show()
+    O.drawFrameShown = 1
+    minButtonFrame.text:SetText("^")
   else
     mainDrawFrame:Hide()
+    O.drawFrameShown = 0
+    minButtonFrame.text:SetText("v")
   end
 end
 
@@ -687,6 +695,8 @@ function headerFrame:PLAYER_ENTERING_WORLD()
   O.frameOffsetY = O.frameOffsetY or DefaultO.frameOffsetY
   O.COMchannel = O.COMchannel or DefaultO.COMchannel
   O.wordsKey = O.wordsKey or DefaultO.wordsKey
+  O.headerFrameShown = O.headerFrameShown or DefaultO.headerFrameShown
+  O.drawFrameShown = O.drawFrameShown or DefaultO.drawFrameShown
   
   ---------------------
   --load words
@@ -729,16 +739,13 @@ function headerFrame:PLAYER_ENTERING_WORLD()
   addDefaultTextures(minButtonFrame, true)
   minButtonFrame:EnableMouse(true)
   addDefaultText(minButtonFrame, "^")
-  minButtonFrame.toggleAction = false
   minButtonFrame:SetScript("OnMouseUp", function(self, button)
     if GetMouseFocus() == self then --OnMouseUp fires when the button is released while the cursor is not above the frame
       if button=="LeftButton" then
         if self.toggleAction then
           toggleDrawFrame(true)
-          self.text:SetText("^")
         else
           toggleDrawFrame(false)
-          self.text:SetText("v")
         end
         self.toggleAction = not self.toggleAction
       end
@@ -996,6 +1003,19 @@ function headerFrame:PLAYER_ENTERING_WORLD()
   --player frames
   ---------------------
   addPlayerFrame(myCharnameRealm, myClass)
+  
+  ---------------------
+  --apply options
+  ---------------------
+  if O.drawFrameShown == 0 then
+    toggleDrawFrame(false)
+    minButtonFrame.toggleAction = true
+  else
+    minButtonFrame.toggleAction = false
+  end
+  if O.headerFrameShown == 0 then
+    toggleHeaderFrame(false)
+  end
 end
 headerFrame:SetScript("OnEvent", function(self, event, ...)
   self[event](self, ...)
