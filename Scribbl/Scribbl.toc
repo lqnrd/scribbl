@@ -1,7 +1,7 @@
 ## Interface: 70300
 ## Author: lqnrd
 ## Title: Scribbl
-## Version: 0.2
+## Version: 0.3
 ## Notes: Scribbl
 ## SavedVariablesPerCharacter: ScribblOptions
 ## OptionalDeps: UTF8

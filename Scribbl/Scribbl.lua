@@ -5,6 +5,14 @@ Scribbl
 local COMprefix = "SCRiBBL"
 local CHANNEL_LIST = {{"PARTY", "P"}, {"RAID", "R"}, {"GUILD", "G"}, {"OFFICER", "O"}, {"BATTLEGROUND", "B"}};
 local BLUE_PRINT_COLOR = "|cffaaaaff"
+local BRUSH_COLORS = {
+  {"WHITE", 1, 1, 1, .75},
+  {"RED", 1, .5, .5, .75},
+  {"YELLOW", 1, 1, 0, .75},
+  {"GREEN", .5, 1, .5, .75},
+  {"BLUE", .5, .5, 1, .75},
+};
+local currentBrush = {};
 local MAX_GUESSING_TIME = 120
 local MAX_HINTS = 3
 
@@ -94,8 +102,9 @@ local _G = _G
 --forward declarations
 local currentGame, startNewGame, startGame, nextRound, resetGame, joinGame, getCurrentHost, addPlayer, addPlayerFrame, removePlayerFrame, updatePlayerFrames, removePlayer, getPlayer, addPlayerScore, setPlayerScore
 local resetPlayersDone, checkAllPlayersDone
-local headerFrame, mainDrawFrame, jointextbox, startGameButton, leaveGameButton, clearCanvasButton, chooseOptions, chooseButtons, COMchannelDropdown
+local headerFrame, mainDrawFrame, jointextbox, startGameButton, leaveGameButton, canvasControlFrame, chooseOptions, chooseButtons, COMchannelDropdown
 local ArtPad = {};
+local resetBrush
 
 local function isValidGameId(id)
   if id:len() < 12 then
@@ -387,10 +396,11 @@ function iTPCallback:CHAT_MSG_ADDON(prefix, msg, channel, from, sendermsgid)
       updatePlayerFrames()
       if getCurrentHost() == myCharnameRealm then
         mainDrawFrame.text:SetText(currentGame.word)
-        clearCanvasButton:Show()
+        canvasControlFrame:Show()
+        resetBrush()
       else
         mainDrawFrame.text:SetText(currentGame.wordX)
-        clearCanvasButton:Hide()
+        canvasControlFrame:Hide()
       end
     end
   elseif cmd == "HNT" then
@@ -445,9 +455,10 @@ function iTPCallback:CHAT_MSG_ADDON(prefix, msg, channel, from, sendermsgid)
       end
     end
   elseif cmd == "SCR" then
+    --end of round
     local args = mysplit2(msg:sub(4))
     if currentGame.id and (args[1] == currentGame.id) then --id == nil: i am not part of a game right now
-      clearCanvasButton:Hide()
+      canvasControlFrame:Hide()
       mainDrawFrame.text:SetText((currentGame.word or "?").." ("..MAX_GUESSING_TIME..")")
       currentGame.word = nil
       currentGame.wordX = nil
@@ -474,19 +485,17 @@ function iTPCallback:CHAT_MSG_ADDON(prefix, msg, channel, from, sendermsgid)
       local args = mysplit2(msg:sub(4))
       if currentGame.id and (args[1] == currentGame.id) then --id == nil: i am not part of a game right now
         if #args >= 9 then
-          local brush = {
-            r = tonumber(args[2]) or 1;
-            g = tonumber(args[3]) or 1;
-            b = tonumber(args[4]) or 1;
-            a = tonumber(args[5]) or 1;
-          }
+          currentBrush.r = tonumber(args[2]) or 1
+          currentBrush.g = tonumber(args[3]) or 1
+          currentBrush.b = tonumber(args[4]) or 1
+          currentBrush.a = tonumber(args[5]) or 1
           local x2, y2, x1, y1 = tonumber(args[6]) or 0, tonumber(args[7]) or 0
           local c = 0
           for i = 8, #args, 2 do --TODO: check #args!
             x1 = tonumber(args[i]) or 0
             y1 = tonumber(args[i+1]) or 0
             c = c + 1
-            ArtPad:DrawLine(x1, y1, x2, y2, brush)
+            ArtPad:DrawLine(x1, y1, x2, y2, currentBrush)
             x2 = x1
             y2 = y1
           end
@@ -512,7 +521,9 @@ local joinButton = CreateFrame("Frame", nil, mainDrawFrame)
 local newGameButton = CreateFrame("Frame", nil, mainDrawFrame)
 startGameButton = CreateFrame("Frame", nil, mainDrawFrame)
 leaveGameButton = CreateFrame("Frame", nil, mainDrawFrame)
-clearCanvasButton = CreateFrame("Frame", nil, mainDrawFrame)
+canvasControlFrame = CreateFrame("Frame", "G_canvasControlFrame", mainDrawFrame)
+local clearCanvasButton = CreateFrame("Frame", nil, canvasControlFrame)
+local brushColorButtons = {};
 
 local function addDefaultTextures(self, addHighlightTex, addClassTex)
   self.bgtexture = self:CreateTexture(nil, "BACKGROUND")
@@ -961,8 +972,15 @@ function headerFrame:PLAYER_ENTERING_WORLD()
     self:OnUpdate(elapsed)
   end);
   
+  ---------------------
+  --clear/brush color frame
+  ---------------------
+  canvasControlFrame:SetSize(30, 20)
+  canvasControlFrame:SetPoint("TOPRIGHT", mainDrawFrame, "TOPRIGHT", 0, 0)
+  clearCanvasButton:EnableMouse(true)
+  
   clearCanvasButton:SetSize(30, 20)
-  clearCanvasButton:SetPoint("TOPRIGHT", mainDrawFrame, "TOPRIGHT", 0, 0)
+  clearCanvasButton:SetPoint("TOPRIGHT", canvasControlFrame, "TOPRIGHT", 0, 0)
   addDefaultTextures(clearCanvasButton, true)
   clearCanvasButton:EnableMouse(true)
   addDefaultText(clearCanvasButton, "clear")
@@ -974,7 +992,28 @@ function headerFrame:PLAYER_ENTERING_WORLD()
       end
     end
   end)
-  clearCanvasButton:Hide()
+  
+  for i = 1, #BRUSH_COLORS do
+    local f = CreateFrame("Frame", nil, canvasControlFrame)
+    brushColorButtons[i] = f
+    f:SetSize(30, 20)
+    f:SetPoint("TOPRIGHT", canvasControlFrame, "TOPRIGHT", 0, -25*i)
+    addDefaultTextures(f, true)
+    f.bgtexture:SetColorTexture(BRUSH_COLORS[i][2], BRUSH_COLORS[i][3], BRUSH_COLORS[i][4], BRUSH_COLORS[i][5])
+    f:EnableMouse(true)
+    f.id = i
+    addDefaultText(f, "X")
+    f:SetScript("OnMouseUp", function(self, button)
+      if GetMouseFocus() == self then --OnMouseUp fires when the button is released while the cursor is not above the frame
+        if button=="LeftButton" then
+          resetBrush(self.id)
+        end
+      end
+    end)
+  end
+  resetBrush()
+  
+  canvasControlFrame:Hide()
   
   ---------------------
   --chat frame
@@ -1127,7 +1166,7 @@ resetGame = function()
     chooseButtons[i]:Hide()
   end
   
-  clearCanvasButton:Hide()
+  canvasControlFrame:Hide()
 end
 
 joinGame = function(id)
@@ -1213,6 +1252,21 @@ end
 --  Snaxxramas, Defias Brotherhood-EU
 --  mnu87 on curseforge
 ---------------------
+
+resetBrush = function(id)
+  id = id or 1
+  currentBrush.r = BRUSH_COLORS[id][2]
+  currentBrush.g = BRUSH_COLORS[id][3]
+  currentBrush.b = BRUSH_COLORS[id][4]
+  currentBrush.a = BRUSH_COLORS[id][5]
+  for i = 1, #BRUSH_COLORS do
+    if i == id then
+      brushColorButtons[i].text:Show()
+    else
+      brushColorButtons[i].text:Hide()
+    end
+  end
+end
 
 ArtPad.mainFrame = mainDrawFrame
 ArtPad.state = "SLEEP";
@@ -1308,14 +1362,12 @@ end;
 
 function ArtPad:HandleMove(x,y,oldX,oldY)
   if self.state == "PAINT" then
-    self:DrawLine(x, y, oldX, oldY, self.brushColor, true);
+    self:DrawLine(x, y, oldX, oldY, currentBrush, true);
   elseif self.state == "CLEAR" then
     self:ClearLine(x,y,oldX,oldY);
     --TODO:buffer clear lines, send them
   end;
 end;
-
-ArtPad.brushColor = { r = 1.0; g = 1.0; b = 1.0; a = 0.75; };
 
 ArtPad.mainLines = {};
 ArtPad.mainLinesPending = {};
@@ -1371,14 +1423,6 @@ function ArtPad:ClearCanvas()
   for i = #self.mainLines, 1, -1 do
     self:JunkLine(i);
   end;
-end;
-
-function ArtPad:SetColor(r, g, b, a)
-  self.brushColor.r = r;
-  self.brushColor.g = g;
-  self.brushColor.b = b;
-  self.brushColor.a = a;
-  self.brushColorSample:SetColorTexture(r,g,b,a);
 end;
 
 function ArtPad:SetTexColor(tex, brush)

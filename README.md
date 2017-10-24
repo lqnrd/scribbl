@@ -17,5 +17,3 @@ TODOs:
 - make the interface less ugly
 
 - enable erase
-
-- enable multiple brush colors
