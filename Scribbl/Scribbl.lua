@@ -102,7 +102,7 @@ local _G = _G
 --forward declarations
 local currentGame, startNewGame, startGame, nextRound, resetGame, joinGame, getCurrentHost, addPlayer, addPlayerFrame, removePlayerFrame, updatePlayerFrames, removePlayer, getPlayer, addPlayerScore, setPlayerScore
 local resetPlayersDone, checkAllPlayersDone
-local headerFrame, mainDrawFrame, jointextbox, startGameButton, leaveGameButton, canvasControlFrame, chooseOptions, chooseButtons, COMchannelDropdown
+local headerFrame, mainDrawFrame, jointextbox, startGameButton, leaveGameButton, canvasControlFrame, chooseOptions, chooseButtons, COMchannelDropdown, chatFrame_textFrame
 local ArtPad = {};
 local resetBrush
 
@@ -391,6 +391,7 @@ function iTPCallback:CHAT_MSG_ADDON(prefix, msg, channel, from, sendermsgid)
       currentGame.wordX = args[3]
       currentGame.hints = 0
       mainDrawFrame.text:Show()
+      chatFrame_textFrame:clearText()
       currentGame.guessing = true
       resetPlayersDone()
       updatePlayerFrames()
@@ -514,6 +515,9 @@ local minButtonFrame = CreateFrame("Frame", nil, headerFrame)
 local closeButtonFrame = CreateFrame("Frame", nil, headerFrame)
 mainDrawFrame = CreateFrame("Frame", nil, headerFrame)
 local chatFrame = CreateFrame("Frame", nil, mainDrawFrame)
+local chatFrame_scrollFrame = CreateFrame("ScrollFrame", nil, chatFrame)
+local chatFrame_scrollBar = CreateFrame("Slider", nil, chatFrame_scrollFrame, "UIPanelScrollBarTemplate")
+chatFrame_textFrame = CreateFrame("Frame", nil, chatFrame_scrollFrame)
 local guesstextbox = CreateFrame("EditBox", nil, chatFrame, "InputBoxTemplate")
 jointextbox = CreateFrame("EditBox", nil, mainDrawFrame, "InputBoxTemplate")
 COMchannelDropdown = CreateFrame("Button", "$parentChannelDropDown", mainDrawFrame, "UIDropDownMenuTemplate")
@@ -595,6 +599,7 @@ addPlayerFrame = function(playerId, className)
       if currentGame.word and (currentGame.word:lower() ~= word:lower()) then
         f.word:Show()
         f.word:SetText(word)
+        chatFrame_textFrame:addText(string.utf8sub(f.playerId, 1, 4), f.className, word)
         C_Timer.After(3, f.removeWord)
       end
     end
@@ -1023,6 +1028,46 @@ function headerFrame:PLAYER_ENTERING_WORLD()
   addDefaultTextures(chatFrame)
   chatFrame.bgtexture:SetColorTexture(.1, .1, .2, 1)
   chatFrame:EnableMouse(true)
+  
+  chatFrame_scrollFrame:SetPoint("TOPLEFT")
+  chatFrame_scrollFrame:SetPoint("TOPRIGHT")
+  chatFrame_scrollFrame:SetPoint("BOTTOMLEFT", chatFrame, "BOTTOMLEFT", 0, 20)
+  chatFrame_scrollFrame:SetClipsChildren(true)
+  
+  chatFrame_scrollBar:SetPoint("TOPRIGHT", chatFrame_scrollFrame, "TOPRIGHT", 0, -16)
+  chatFrame_scrollBar:SetPoint("BOTTOMRIGHT", chatFrame_scrollFrame, "BOTTOMRIGHT", 0, 16)
+  chatFrame_scrollBar:SetWidth(16)
+  chatFrame_scrollBar:SetMinMaxValues(1, 200)
+  chatFrame_scrollBar:SetValueStep(1)
+  chatFrame_scrollBar.scrollStep = 1
+  chatFrame_scrollBar:SetValue(1)
+  chatFrame_scrollBar:SetScript("OnValueChanged", function(self, value)
+    self:GetParent():SetVerticalScroll(value)
+  end)
+  
+  chatFrame_scrollFrame:SetScrollChild(chatFrame_textFrame)
+  chatFrame_textFrame:SetSize(chatFrame:GetWidth()-16, chatFrame:GetHeight()-20)
+  addDefaultText(chatFrame_textFrame, "guesses", nil, "TOPLEFT", chatFrame_textFrame, "TOPLEFT", 0, 0)
+  chatFrame_textFrame.text:SetJustifyH("LEFT")
+  local scrollDownNextFrame = false
+  chatFrame_textFrame.addText = function(self, from, class, text)
+    self.text:SetText(format("%s\n\124c%s%s\124r:\n  %s", self.text:GetText() or "", RAID_CLASS_COLORS[class or "PRIEST"].colorStr, from, text))
+    scrollDownNextFrame = true
+  end
+  chatFrame_textFrame.clearText = function(self)
+    self.text:SetText("")
+    scrollDownNextFrame = true
+  end
+  
+  chatFrame:SetScript("OnUpdate", function(self, elapsed)
+    if scrollDownNextFrame then
+      local h = max(floor(chatFrame_textFrame.text:GetHeight() - chatFrame_scrollFrame:GetHeight() + 16), 1)
+      chatFrame_scrollBar:SetMinMaxValues(1, h)
+      chatFrame_scrollBar:SetValue(h)
+      scrollDownNextFrame = false
+    end
+  end)
+  
   
   guesstextbox:SetPoint("BOTTOMLEFT", chatFrame, "BOTTOMLEFT", 6, 0)
   guesstextbox:SetAutoFocus(false)
