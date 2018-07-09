@@ -9,16 +9,20 @@
 1.1 Functions
 
   local iTPCallback = iTP:RegisterPrefix(prefix)
-   
+  
     Registers a new addon prefix like you would with Blizzard's
     RegisterAddonMessagePrefix(prefix). Result table will be used to get
     events.
-   
+  
+  local isRegistered = iTP:IsPrefixRegistered(prefix)
+  
+    Returns whether the given prefix is already registered.
+  
   local msgid = iTP:SendAddonMessage(prefix, msg, channel [, target])
-   
+  
     Works just like Blizzard's SendAddonMessage. Return value can be
     used to keep track of specific messages.
-   
+  
   iTP:ClearPendingMessages(prefix)
   
     Clear output queue for that prefix, aborting current transfers and
@@ -114,6 +118,14 @@
   The output uses a FIFO queue.
 --]]
 
+--------------------
+--XXX BfA compat
+--------------------
+local isBfA = select(4, GetBuildInfo()) >= 80000
+local RegisterAddonMessagePrefix = isBfA and C_ChatInfo.RegisterAddonMessagePrefix or RegisterAddonMessagePrefix
+local SendAddonMessage = isBfA and C_ChatInfo.SendAddonMessage or SendAddonMessage
+--------------------
+
 local iTP = LibStub:NewLibrary("iTransferProtocol-1.0", 1)
 
 if not iTP then return end -- No upgrade needed
@@ -178,9 +190,17 @@ function iTP:RegisterPrefix(prefix)
   return self.prefixes[prefix]
 end
 
+function iTP:IsPrefixRegistered(prefix)
+  prefix = getPaddedPrefix(prefix)
+  if self.prefixes[prefix] then
+    return true
+  end
+  return false
+end
+
 function iTP:SendAddonMessage(prefix, message, channel, whispertarget)
   prefix = getPaddedPrefix(prefix)
-  prefixTable = self.prefixes[prefix]
+  local prefixTable = self.prefixes[prefix]
   if not prefixTable then
     error(format("Prefix %s is not registered.", trim1(prefix)))
   end
@@ -231,7 +251,7 @@ end
 
 function iTP:ClearPendingMessages(prefix)
   prefix = getPaddedPrefix(prefix)
-  prefixTable = self.prefixes[prefix]
+  local prefixTable = self.prefixes[prefix]
   if not prefixTable then
     error(format("Prefix %s is not registered.", trim1(prefix)))
   end
@@ -243,7 +263,7 @@ end
 
 function iTP:RepeatLastMessage(prefix)
   prefix = getPaddedPrefix(prefix)
-  prefixTable = self.prefixes[prefix]
+  local prefixTable = self.prefixes[prefix]
   if not prefixTable then
     error(format("Prefix %s is not registered.", trim1(prefix)))
   end
@@ -337,7 +357,7 @@ function iTPFrame:CHAT_MSG_ADDON(prefix, msg, channel, from)
   
   local payloadPrefix = msg:sub(1, 8)
   
-  prefixTable = iTP.prefixes[payloadPrefix]
+  local prefixTable = iTP.prefixes[payloadPrefix]
   if not prefixTable then return end
   
   local msgid = tonumber(msg:sub(9, 12), 16)

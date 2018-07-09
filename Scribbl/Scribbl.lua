@@ -102,7 +102,7 @@ local _G = _G
 --forward declarations
 local currentGame, startNewGame, startGame, nextRound, resetGame, joinGame, getCurrentHost, addPlayer, addPlayerFrame, removePlayerFrame, updatePlayerFrames, removePlayer, getPlayer, addPlayerScore, setPlayerScore
 local resetPlayersDone, checkAllPlayersDone
-local headerFrame, mainDrawFrame, jointextbox, startGameButton, leaveGameButton, canvasControlFrame, chooseOptions, chooseButtons, COMchannelDropdown, chatFrame_textFrame
+local headerFrame, mainDrawFrame, jointextbox, startGameButton, leaveGameButton, leaveGame, canvasControlFrame, chooseOptions, chooseButtons, COMchannelDropdown, chatFrame_textFrame
 local ArtPad = {};
 local resetBrush
 
